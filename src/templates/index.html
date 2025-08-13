@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Studio - Stream Processing Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+    <header class="app-header">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="brand">
+                    <div class="brand-nav">
+                        <a href="/" class="back-button" title="Back to Tools">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                        </a>
+                        <div class="brand-content">
+                            <h1 class="brand-title">Kafka Studio</h1>
+                            <span class="brand-subtitle">Stream Processing Interface</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-controls">
+                    <div id="connection-indicator" class="connection-indicator disconnected">
+                        <div class="connection-dot"></div>
+                        <span id="connection-text">Disconnected</span>
+                    </div>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <div class="container-fluid">
+            <div class="row g-4">
+                <!-- Control Panel -->
+                <div class="col-lg-4">
+                    <div class="control-panel">
+                        <!-- Connection Section -->
+                        <section class="section">
+                            <div class="section-header">
+                                <h3 class="section-title">Connection</h3>
+                                <div class="section-indicator" id="connection-section-status"></div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label class="form-label">Bootstrap Servers</label>
+                                    <input type="text" class="form-input" id="bootstrap-servers" 
+                                           placeholder="localhost:9092" value="localhost:9092">
+                                </div>
+                                <div class="button-group">
+                                    <button class="btn-primary" onclick="testConnection()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 2L2 22M17 6.5L19 4.5"/>
+                                            <path d="M5 12L19 12"/>
+                                        </svg>
+                                        Test Connection
+                                    </button>
+                                    <button class="btn-secondary" onclick="refreshTopics()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 4 23 10 17 10"/>
+                                            <polyline points="1 20 1 14 7 14"/>
+                                            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                                        </svg>
+                                        Refresh Topics
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Producer Section -->
+                        <section class="section">
+                            <div class="section-header">
+                                <h3 class="section-title">Producer</h3>
+                                <div class="section-indicator" id="producer-section-status"></div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label class="form-label">Target Topic</label>
+                                    <select class="form-select" id="producer-topic">
+                                        <option value="">Select topic</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Key <span class="form-label-hint">optional</span></label>
+                                    <input type="text" class="form-input" id="message-key" placeholder="partition-key">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Message</label>
+                                    <textarea class="form-textarea" id="message-content" rows="4" 
+                                              placeholder='{"event": "user_action", "data": {...}}'></textarea>
+                                </div>
+                                <button class="btn-primary full-width" onclick="sendMessage()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22,2 15,22 11,13 2,9 22,2"/>
+                                    </svg>
+                                    Send Message
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Consumer Section -->
+                        <section class="section">
+                            <div class="section-header">
+                                <h3 class="section-title">Consumer</h3>
+                                <div class="section-indicator" id="consumer-section-status"></div>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-group">
+                                    <label class="form-label">Topics</label>
+                                    <select class="form-select" id="consumer-topics" multiple size="4">
+                                        <option value="" disabled>Refresh topics to populate</option>
+                                    </select>
+                                    <small class="form-hint">Hold Cmd/Ctrl to select multiple</small>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Consumer Group</label>
+                                    <input type="text" class="form-input" id="consumer-group" 
+                                           placeholder="consumer-group-1">
+                                </div>
+                                <div class="consumer-controls">
+                                    <button class="btn-success" id="start-consumer-btn" onclick="startConsumer()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="5,3 19,12 5,21 5,3"/>
+                                        </svg>
+                                        Start
+                                    </button>
+                                    <button class="btn-danger" id="stop-consumer-btn" onclick="stopConsumer()" disabled>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="6" y="4" width="4" height="16"/>
+                                            <rect x="14" y="4" width="4" height="16"/>
+                                        </svg>
+                                        Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Message Stream -->
+                <div class="col-lg-8">
+                    <div class="message-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h2>Message Stream</h2>
+                                <div class="message-stats" id="message-stats">
+                                    <span class="stat-item">
+                                        <span class="stat-label">Total</span>
+                                        <span class="stat-value" id="total-messages">0</span>
+                                    </span>
+                                    <span class="stat-item">
+                                        <span class="stat-label">JSON</span>
+                                        <span class="stat-value" id="json-messages">0</span>
+                                    </span>
+                                    <span class="stat-item">
+                                        <span class="stat-label">Text</span>
+                                        <span class="stat-value" id="text-messages">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="panel-controls">
+                                <div class="search-filter">
+                                    <input type="text" class="search-input" id="search-messages" placeholder="Search messages">
+                                    <div class="filter-tabs">
+                                        <input type="radio" id="filter-all" name="filter" value="all" checked>
+                                        <label for="filter-all" class="filter-tab">All</label>
+                                        
+                                        <input type="radio" id="filter-json" name="filter" value="json">
+                                        <label for="filter-json" class="filter-tab">JSON</label>
+                                        
+                                        <input type="radio" id="filter-text" name="filter" value="text">
+                                        <label for="filter-text" class="filter-tab">Text</label>
+                                    </div>
+                                </div>
+                                <div class="panel-actions">
+                                    <button class="btn-icon" onclick="clearMessages()" title="Clear all messages">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3,6 5,6 21,6"/>
+                                            <path d="M19,6l-2,14a2,2 0 01-2,2H9a2,2 0 01-2-2L5,6"/>
+                                            <path d="M10,11v6M14,11v6"/>
+                                        </svg>
+                                    </button>
+                                    <button class="btn-icon" onclick="exportMessages()" title="Export messages">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                            <polyline points="7,10 12,15 17,10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="message-stream" id="messages-container">
+                            <div class="empty-state">
+                                <div class="empty-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M9 19c-5 0-8-3-8-8s3-8 8-8 8 3 8 8"/>
+                                        <path d="M17 12h.01"/>
+                                        <path d="M10 15l5-5"/>
+                                    </svg>
+                                </div>
+                                <h3>No messages yet</h3>
+                                <p>Messages will appear here when you start producing or consuming</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Status Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="status-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Status</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
